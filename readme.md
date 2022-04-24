@@ -7,8 +7,8 @@
 ### Grammar
 
 Origin lambda-calculus grammar:
-\lambda
-* `FACTOR ⟶ number | ( EXPR ) \lambda`
+$\lambda$
+* `FACTOR ⟶ number | ( EXPR ) $\lambda$`
 * `TERM ⟶ FACTOR TERM1`
 * `TERM1 ⟶ * FACTOR TERM1 | / FACTOR TERM1 | epsilon`
 * `EXPR ⟶ TERM EXPR1`
