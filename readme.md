@@ -13,12 +13,12 @@ Origin lambda-calculus grammar:
 * `Λ ⟶ λ v . Λ`
 
 lambda-calculus grammar, which is converted to LL(1) 
-* `Λ ⟶ v Λs | λ v . Λ Λs`
+* `Λ ⟶ v Λs | λ v . Λ Λs | ( Λ ) Λs`
 * `Λs ⟶ ε | _ Λ`
 
 
 ###  First and Follow
-* `FIRST(T) = { λ v }`
+* `FIRST(T) = { λ v ( }`
 * `FIRST(T_SUB) = { _ ε }`
 
 Computed by https://mikedevice.github.io/first-follow/
