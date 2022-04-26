@@ -7,37 +7,19 @@
 ### Grammar
 
 Origin lambda-calculus grammar:
-\lambda
-* `FACTOR ⟶ number | ( EXPR ) \lambda`
-* `TERM ⟶ FACTOR TERM1`
-* `TERM1 ⟶ * FACTOR TERM1 | / FACTOR TERM1 | epsilon`
-* `EXPR ⟶ TERM EXPR1`
-* `EXPR1 ⟶ + TERM EXPR1 | - TERM EXPR1 | epsilon`
 
+* `Λ ⟶ v`
+* `Λ ⟶ Λ _ Λ`
+* `Λ ⟶ λ v . Λ`
 
-This is LL(1) grammar
-* `FACTOR ⟶ number | ( EXPR )`
-* `TERM ⟶ FACTOR TERM1`
-* `TERM1 ⟶ * FACTOR TERM1 | / FACTOR TERM1 | epsilon`
-* `EXPR ⟶ TERM EXPR1`
-* `EXPR1 ⟶ + TERM EXPR1 | - TERM EXPR1 | epsilon`
+lambda-calculus grammar, which is converted to LL(1) 
+* `Λ ⟶ v Λs | λ v . Λ Λs`
+* `Λs ⟶ ε | _ Λ`
 
 
 ###  First and Follow
-* `FIRST(FACTOR) = { number, ( }`
-* `FIRST(TERM) = { number, ( }`
-* `FIRST(EXPR) = { number, ( }`
-* `FIRST(EXPR1) = { +, -, epsilon }`
-* `FIRST(TERM1) = { *, /, epsilon }` 
-
-
-* `FOLLOW(FACTOR) = { ), *, /, +, - }`
-* `FOLLOW(TERM) = { ), +, - }`
-* `FOLLOW(EXPR) = { ) }`
-* `FOLLOW(EXPR1) = { ) }`
-* `FOLLOW(TERM1) = { ), +, - }`
-
-
+* `FIRST(T) = { λ v }`
+* `FIRST(T_SUB) = { _ ε }`
 
 Computed by https://mikedevice.github.io/first-follow/
 

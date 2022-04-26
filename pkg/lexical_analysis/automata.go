@@ -20,14 +20,15 @@ func NewAutomata() Automata {
 	return &automata{}
 }
 
-func (a *automata) Peek() (byte, error) {
-	return a.input.ReadByte()
+func (a *automata) Peek() (rune, error) {
+	r, _, err := a.input.ReadRune()
+	return r, err
 }
 
-func (a *automata) Lookahead() (byte, error) {
-	b, err := a.input.ReadByte()
+func (a *automata) Lookahead() (rune, error) {
+	b, _, err := a.input.ReadRune()
 	if err == nil {
-		err = a.input.UnreadByte()
+		err = a.input.UnreadRune()
 	}
 	if err == io.EOF {
 		return EOF, nil
@@ -36,7 +37,7 @@ func (a *automata) Lookahead() (byte, error) {
 }
 
 func (a *automata) Unread() error {
-	return a.input.UnreadByte()
+	return a.input.UnreadRune()
 }
 
 func (a *automata) extractToken(input *bytes.Buffer) (*entity.Token, error) {
@@ -89,8 +90,8 @@ func (a *automata) s6() (*entity.Token, error) {
 	return entity.NewBracketToken(a.lexem), nil
 }
 
-func (a *automata) s1TransitTo(lookahead byte) func() (*entity.Token, error) {
-	res, ok := map[byte]func() (*entity.Token, error){
+func (a *automata) s1TransitTo(lookahead rune) func() (*entity.Token, error) {
+	res, ok := map[rune]func() (*entity.Token, error){
 		ABSTRACTION:   a.s2,
 		APPLICATION:   a.s3,
 		LAMBDA:        a.s4,

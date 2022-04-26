@@ -71,10 +71,10 @@ type node struct {
 	child []Node
 }
 
-func NewNonTerminalNode(l string) Node {
+func NewNode(l string, t Token) Node {
 	return &node{
 		label: l,
-		token: nil,
+		token: &t,
 		child: nil,
 	}
 }

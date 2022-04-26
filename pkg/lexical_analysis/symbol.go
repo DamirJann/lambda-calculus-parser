@@ -1,12 +1,12 @@
 package lexical_analysis
 
 const (
-	LAMBDA      = byte('#')
-	APPLICATION = byte(' ')
-	ABSTRACTION = byte('.')
+	LAMBDA      = rune('λ')
+	APPLICATION = rune('_')
+	ABSTRACTION = rune('.')
 
-	LEFT_BRACKET  = byte('(')
-	RIGHT_BRACKET = byte(')')
+	LEFT_BRACKET  = rune('(')
+	RIGHT_BRACKET = rune(')')
 
 	EOF = 0
 )

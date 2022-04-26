@@ -3,13 +3,37 @@ package entity
 type Tag int
 
 const (
+	// Terminals
 	ABSTRACTION Tag = iota
 	APPLICATION
 	VARIABLE
 	LAMBDA
 	LEFT_BRACKET
 	RIGHT_BRACKET
+
+	// Non-Terminals
+	TERM
+	TERMS
+	EPSILON
 )
+
+func IsTerminal(t Tag) bool {
+	return map[Tag]bool{
+		ABSTRACTION:   true,
+		APPLICATION:   true,
+		VARIABLE:      true,
+		LAMBDA:        true,
+		LEFT_BRACKET:  true,
+		RIGHT_BRACKET: true,
+	}[t]
+}
+
+func NewEpsilonToken() *Token {
+	return &Token{
+		Tag:   EPSILON,
+		Value: "ε",
+	}
+}
 
 type Token struct {
 	Tag   Tag
@@ -39,14 +63,14 @@ func NewAbstractionToken(lexem string) *Token {
 
 func NewBracketToken(lexem string) *Token {
 	var tag Tag
-	if lexem == string("(") {
+	if lexem == "(" {
 		tag = LEFT_BRACKET
 	} else {
 		tag = RIGHT_BRACKET
 	}
 	return &Token{
 		Tag:   tag,
-		Value: lexem,
+		Value: LEFT_BRACKET,
 	}
 }
 
