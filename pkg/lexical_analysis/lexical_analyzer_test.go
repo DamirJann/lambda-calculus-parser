@@ -30,7 +30,7 @@ func happyFlowTokenizeWithBasicOperations(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
 	automata := NewAutomata()
 	lexicalAnalyzer := NewLexicalAnalyzer(ctx, automata)
-	expression := "(#f.(#x.f(xx)) (#x.f(xx)))"
+	expression := "(λf.(λx.f(xx))_(λx.f(xx)))"
 
 	// act
 	ts, err := lexicalAnalyzer.Tokenize(expression)
