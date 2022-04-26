@@ -1,6 +1,6 @@
 ### Running
 ```
- go run . --expr "34+5+3/5-4*(4+545)/3"
+ go run . --expr "x_(λy.x)_y_(z_z)"
 ```
 
 
