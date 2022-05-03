@@ -12,11 +12,9 @@ import (
 func main() {
 	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
 
-	//preprocessor := preprocessing.NewPreprocessing()
 	automata := lexical_analysis.NewAutomata()
 	lexicalAnalyzer := lexical_analysis.NewLexicalAnalyzer(ctx, automata)
 	syntacticalAnalyzer := syntactical_analyzer.NewLL1PredictableParser(ctx)
-	//compiler := compilation.NewCompiler(preprocessor, lexicalAnalyzer, syntacticalAnalyzer)
 
 	var expr string
 	flag.StringVar(&expr, "expr", "", "expression")

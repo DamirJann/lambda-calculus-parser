@@ -15,9 +15,6 @@ const (
 	LAMBDA        = "λ"
 	EPSILON       = "ε"
 	TERMS         = "Λs"
-	FACTOR        = "FACTOR"
-	NUMBER        = "NUMBER"
-	TERMINAL      = "TERMINAL"
 	LEFT_BRACKET  = "("
 	RIGHT_BRACKET = ")"
 )
@@ -30,6 +27,7 @@ func NewLL1PredictableParser(ctx context.Context) LL1PredictableParser {
 
 type LL1PredictableParser interface {
 	Parse([]entity.Token) (entity.Ast, error)
+	Unparse(ast entity.Ast) (string, error)
 }
 
 type lL1PredictableParser struct {
@@ -94,6 +92,28 @@ func (l *lL1PredictableParser) parse(nonTerminalTag entity.Tag) (entity.Node, er
 	}
 }
 
+func (l *lL1PredictableParser) Unparse(ast entity.Ast) (string, error) {
+	res, err := l.unparse(ast.Root())
+	l.logging.Debugf(`unparsed to "%s"`, res)
+	return res, err
+}
+
+func (l *lL1PredictableParser) unparse(node entity.Node) (string, error) {
+	if entity.IsTerminal(node.Token().Tag) {
+		return node.Label(), nil
+	}
+
+	var res string
+	for _, child := range node.Child() {
+		parseChild, err := l.unparse(child)
+		if err != nil {
+			return res, err
+		}
+		res += parseChild
+	}
+	return res, nil
+}
+
 func (l lL1PredictableParser) NewNodeFromNonTerminal(t entity.Tag) entity.Node {
 	switch t {
 	case entity.TERM:
@@ -115,7 +135,6 @@ func (l lL1PredictableParser) NewNodeFromNonTerminal(t entity.Tag) entity.Node {
 			return nil
 		}
 	}
-
 }
 
 func (l lL1PredictableParser) NewNodeFromTerminal(t entity.Token) entity.Node {
