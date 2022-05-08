@@ -26,6 +26,7 @@ type lexicalAnalyzer struct {
 }
 
 func (la *lexicalAnalyzer) Tokenize(input string) (output []entity.Token, err error) {
+	la.logging.Debugf("start handling %s", input)
 	la.initBuffer(input)
 	for {
 		t, err := la.automata.extractToken(la.input)
