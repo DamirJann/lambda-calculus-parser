@@ -27,7 +27,8 @@ func NewLL1PredictableParser(ctx context.Context) LL1PredictableParser {
 
 type LL1PredictableParser interface {
 	Parse([]entity.Token) (entity.Ast, error)
-	Unparse(ast entity.Ast) (string, error)
+	Unparse(entity.Ast) (string, error)
+	BetaReduce(entity.Ast) (entity.Ast, error)
 }
 
 type lL1PredictableParser struct {
@@ -38,14 +39,81 @@ type lL1PredictableParser struct {
 func (l *lL1PredictableParser) Parse(t []entity.Token) (entity.Ast, error) {
 	l.bufferInit(t)
 
-	if root, err := l.parse(entity.TERM); err == nil {
-		ast := entity.NewAst(root)
-		l.logging.Debugf("computed ast: \n%v", ast.Visualize())
-
-		return ast, nil
-	} else {
+	root, err := l.parse(entity.TERM)
+	if err != nil {
 		return nil, err
 	}
+	ast := entity.NewAst(root)
+	l.logging.Debugf("computed ast: \n%v", ast.Visualize())
+
+	l.simplify(ast.Root())
+	if err != nil {
+		return nil, err
+	}
+	l.logging.Debugf("simplified ast: \n%v", ast.Visualize())
+
+	return ast, nil
+}
+
+func (l *lL1PredictableParser) simplify(node entity.Node) {
+	for i := len(node.Child()) - 1; i >= 0; i-- {
+		l.simplify(node.Child()[i])
+
+		if len(node.Child()[i].Child()) == 0 && !entity.IsTerminal(node.Child()[i].Token().Tag) {
+			node.Delete(i)
+		} else {
+			switch node.Child()[i].Token().Tag {
+			case entity.EPSILON, entity.LEFT_BRACKET, entity.RIGHT_BRACKET:
+				{
+					node.Delete(i)
+				}
+			case entity.TERMS:
+				{
+					node.Replace(i, node.Child()[i].Child()...)
+				}
+			}
+
+		}
+	}
+
+}
+
+func (l *lL1PredictableParser) BetaReduce(ast entity.Ast) (entity.Ast, error) {
+	err := l.betaReduce(ast.Root())
+	if err != nil {
+		return nil, err
+	}
+
+	l.logging.Debugf("ast after beta-reduction:\n%s", ast.Visualize())
+	return ast, nil
+}
+
+func (l *lL1PredictableParser) betaReduce(n entity.Node) error {
+	for _, child := range n.Child() {
+		if err := l.betaReduce(child); err != nil {
+			return err
+		}
+	}
+
+	if len(n.Child()) == 3 {
+		lo := n.Child()[0]
+		ro := n.Child()[2]
+
+		if len(lo.Child()) == 0 || lo.Child()[0].Token().Tag != entity.LAMBDA {
+			return nil
+		}
+
+		localVar := lo.Child()[1]
+		lo.Delete(2)
+		lo.Delete(1)
+		lo.Delete(0)
+		l.apply(lo, ro, localVar)
+
+		n.Delete(2)
+		n.Delete(1)
+	}
+	return nil
+
 }
 
 func (l *lL1PredictableParser) bufferInit(t []entity.Token) {
@@ -111,6 +179,11 @@ func (l *lL1PredictableParser) unparse(node entity.Node) (string, error) {
 		}
 		res += parseChild
 	}
+
+	if node.Token().Tag == entity.TERM && len(node.Child()) > 2 {
+		res = "(" + res + ")"
+	}
+
 	return res, nil
 }
 
@@ -171,6 +244,18 @@ func (l lL1PredictableParser) NewNodeFromTerminal(t entity.Token) entity.Node {
 		{
 			l.logging.Debugf("unknown token tag %s", t)
 			return nil
+		}
+	}
+}
+
+func (l *lL1PredictableParser) apply(lop entity.Node, rop entity.Node, localVar entity.Node) {
+	for i, child := range lop.Child() {
+		if *child.Token() == *localVar.Token() {
+			lop.Replace(i, rop)
+		} else if child.Token().Tag == entity.LAMBDA {
+			return
+		} else {
+			l.apply(child, rop, localVar)
 		}
 	}
 }

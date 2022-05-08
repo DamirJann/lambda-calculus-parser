@@ -7,7 +7,6 @@ import (
 )
 
 type Ast interface {
-	Evaluate() int
 	Visualize() string
 	Root() Node
 }
@@ -17,7 +16,6 @@ type ast struct {
 }
 
 type Node interface {
-	Evaluate() (int, error)
 	Token() *Token
 	Label() string
 	AddChildToEnd(...Node)
@@ -25,7 +23,7 @@ type Node interface {
 	AddChildToBegin(...Node)
 	Delete(int)
 	Child() []Node
-	Replace(Node, int)
+	Replace(int, ...Node)
 }
 
 func NewAst(root Node) *ast {
@@ -50,8 +48,10 @@ func (n *node) Delete(pos int) {
 	n.child = append(n.child[:pos], n.child[pos+1:]...)
 }
 
-func (n *node) Replace(new Node, pos int) {
-	n.child[pos] = new
+func (n *node) Replace(pos int, new ...Node) {
+	n.AddChild(pos, new...)
+	n.Delete(pos + len(new))
+
 }
 
 func (n node) Child() []Node {
@@ -79,52 +79,8 @@ func NewNode(l string, t Token) Node {
 	}
 }
 
-func NewTerminalNode(t *Token) Node {
-	return &node{
-		token: t,
-		child: nil,
-	}
-}
-
-func NewEpsilonNode() Node {
-	return &node{
-		label: "eps",
-		token: nil,
-		child: nil,
-	}
-}
-
-func (a *ast) Evaluate() int {
-	//return a.root.Evaluate()
-	return 0
-}
-
 func (a *ast) Root() Node {
 	return a.root
-}
-
-func (n node) Evaluate() (res int, err error) {
-	//for i, child := range n.child {
-	//	switch child.Token().Tag {
-	//	case OPERATOR_PLUS, OPERATOR_MINUS, OPERATOR_MULTIPLICATION, OPERATOR_DIVISION:
-	//		{
-	//			if i < 1 || i >= len(n.child)-1 {
-	//				return 0, errors.New("not enough operands for bin.op")
-	//			}
-	//			lo, err := n.child[i-1].Evaluate()
-	//			if err != nil {
-	//				return 0, err
-	//			}
-	//			ro, err := n.child[i+1].Evaluate()
-	//			if err != nil {
-	//				return 0, err
-	//			}
-	//		}
-	//	}
-	//
-	//}
-	return 0, nil
-
 }
 
 func (a *ast) Visualize() string {
