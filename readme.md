@@ -1,7 +1,8 @@
 ### Running
 ```
- go run . --expr "x_(λy.x)_y_(z_z)"
- go run . --reduction=beta --expr "(λy.x)_y_(z_z)" 
+ go run . --expr="x_(λy.x)_y_(z_z)"
+ go run . --red="beta" --expr="(λy.x)_y_(z_z)" 
+ go run . --red="alpha" --expr="(λy.x)_y_(z_z)" --sub="z=t,y=q"  
  
 ```
 

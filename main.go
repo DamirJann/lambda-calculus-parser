@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"math-parser/pkg/lexical_analysis"
 	syntactical_analyzer "math-parser/pkg/syntactical_analysis"
 	"math-parser/pkg/utils/logging"
+	"strings"
 )
 
 func main() {
@@ -22,6 +22,10 @@ func main() {
 
 	var red string
 	flag.StringVar(&red, "red", "", "reduction")
+
+	var subInput string
+	flag.StringVar(&subInput, "sub", "", "substitution")
+
 	flag.Parse()
 
 	tk, err := lexicalAnalyzer.Tokenize(expr)
@@ -44,7 +48,16 @@ func main() {
 	switch red {
 	case "alpha":
 		{
-			err = errors.New("not implemented")
+			sub := handleSubstitution(subInput)
+			ast, err = syntacticalAnalyzer.AlphaReduce(ast, sub)
+			if err != nil {
+				break
+			}
+			res, err := syntacticalAnalyzer.Unparse(ast)
+			if err != nil {
+				break
+			}
+			fmt.Printf("Unparsed after alpha-reduction to %s", res)
 		}
 	case "beta":
 		{
@@ -65,4 +78,13 @@ func main() {
 		fmt.Printf("Error during comand: %v", err)
 		return
 	}
+}
+
+func handleSubstitution(input string) map[string]string {
+	res := map[string]string{}
+	subs := strings.Split(input, ",")
+	for _, sub := range subs {
+		res[strings.Split(sub, "=")[0]] = strings.Split(sub, "=")[1]
+	}
+	return res
 }

@@ -550,3 +550,166 @@ func happyFlowBetaReduction12(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, res, "((z_z)_((z_z)_r))")
 }
+
+func TestLexicalAnalyzer_AlphaReduction(t *testing.T) {
+	var tests = []struct {
+		name     string
+		scenario func(*testing.T)
+	}{
+		{
+			name:     "Happy flow. Beta alpha1",
+			scenario: happyFlowAlphaReduction1,
+		},
+		{
+			name:     "Happy flow. Beta alpha2",
+			scenario: happyFlowAlphaReduction2,
+		},
+		{
+			name:     "Happy flow. Beta alpha3",
+			scenario: happyFlowAlphaReduction3,
+		},
+
+		{
+			name:     "Happy flow. Beta alpha4",
+			scenario: happyFlowAlphaReduction4,
+		},
+
+		{
+			name:     "Happy flow. Beta alpha5",
+			scenario: happyFlowAlphaReduction5,
+		},
+
+		{
+			name:     "Happy flow. Beta alpha6",
+			scenario: happyFlowAlphaReduction6,
+		},
+	}
+
+	t.Parallel()
+	for _, test := range tests {
+		t.Run(test.name, test.scenario)
+	}
+}
+
+func happyFlowAlphaReduction1(t *testing.T) {
+	// arrange
+	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
+	automata := lexical_analysis.NewAutomata()
+	analyzer := lexical_analysis.NewLexicalAnalyzer(ctx, automata)
+	parser := NewLL1PredictableParser(ctx)
+
+	// act
+	expression := "x"
+	sub := map[string]string{
+		"x": "y",
+	}
+	tk, _ := analyzer.Tokenize(expression)
+	ast, err := parser.Parse(tk)
+	ast, err = parser.AlphaReduce(ast, sub)
+	res, err := parser.Unparse(ast)
+	// assert
+	assert.Equal(t, err, nil)
+	assert.Equal(t, res, "y")
+}
+
+func happyFlowAlphaReduction2(t *testing.T) {
+	// arrange
+	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
+	automata := lexical_analysis.NewAutomata()
+	analyzer := lexical_analysis.NewLexicalAnalyzer(ctx, automata)
+	parser := NewLL1PredictableParser(ctx)
+
+	// act
+	expression := "x"
+	sub := map[string]string{
+		"q": "y",
+	}
+	tk, _ := analyzer.Tokenize(expression)
+	ast, err := parser.Parse(tk)
+	ast, err = parser.AlphaReduce(ast, sub)
+	res, err := parser.Unparse(ast)
+	// assert
+	assert.Equal(t, err, nil)
+	assert.Equal(t, res, "x")
+}
+
+func happyFlowAlphaReduction3(t *testing.T) {
+	// arrange
+	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
+	automata := lexical_analysis.NewAutomata()
+	analyzer := lexical_analysis.NewLexicalAnalyzer(ctx, automata)
+	parser := NewLL1PredictableParser(ctx)
+
+	// act
+	expression := "(λy.y_x)"
+	sub := map[string]string{
+		"y": "z",
+	}
+	tk, _ := analyzer.Tokenize(expression)
+	ast, err := parser.Parse(tk)
+	ast, err = parser.AlphaReduce(ast, sub)
+	assert.Equal(t, err, nil)
+	res, err := parser.Unparse(ast)
+	// assert
+	assert.Equal(t, res, "(λz.(z_x))")
+}
+
+func happyFlowAlphaReduction4(t *testing.T) {
+	// arrange
+	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
+	automata := lexical_analysis.NewAutomata()
+	analyzer := lexical_analysis.NewLexicalAnalyzer(ctx, automata)
+	parser := NewLL1PredictableParser(ctx)
+
+	// act
+	expression := "(λy.y_x)"
+	sub := map[string]string{
+		"x": "y",
+	}
+	tk, _ := analyzer.Tokenize(expression)
+	ast, err := parser.Parse(tk)
+	ast, err = parser.AlphaReduce(ast, sub)
+	assert.Equal(t, err.Error(), "wrong alpha-reduction")
+}
+
+func happyFlowAlphaReduction5(t *testing.T) {
+	// arrange
+	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
+	automata := lexical_analysis.NewAutomata()
+	analyzer := lexical_analysis.NewLexicalAnalyzer(ctx, automata)
+	parser := NewLL1PredictableParser(ctx)
+
+	// act
+	expression := "(λy.λy.y)"
+	sub := map[string]string{
+		"y": "z",
+	}
+	tk, _ := analyzer.Tokenize(expression)
+	ast, err := parser.Parse(tk)
+	ast, err = parser.AlphaReduce(ast, sub)
+	res, err := parser.Unparse(ast)
+	// assert
+	assert.Equal(t, err, nil)
+	assert.Equal(t, res, "(λz.(λz.z))")
+
+}
+
+func happyFlowAlphaReduction6(t *testing.T) {
+	// arrange
+	ctx := context.WithValue(context.Background(), "logger", logging.NewBuiltinLogger())
+	automata := lexical_analysis.NewAutomata()
+	analyzer := lexical_analysis.NewLexicalAnalyzer(ctx, automata)
+	parser := NewLL1PredictableParser(ctx)
+
+	// act
+	expression := "(λz.(λt.z_z_y_z))"
+	sub := map[string]string{
+		"y": "z",
+	}
+	tk, _ := analyzer.Tokenize(expression)
+	ast, err := parser.Parse(tk)
+	ast, err = parser.AlphaReduce(ast, sub)
+	// assert
+	assert.Equal(t, err.Error(), "wrong alpha-reduction")
+
+}

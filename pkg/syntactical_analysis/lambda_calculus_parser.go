@@ -29,6 +29,7 @@ type LL1PredictableParser interface {
 	Parse([]entity.Token) (entity.Ast, error)
 	Unparse(entity.Ast) (string, error)
 	BetaReduce(entity.Ast) (entity.Ast, error)
+	AlphaReduce(ast entity.Ast, sub map[string]string) (entity.Ast, error)
 }
 
 type lL1PredictableParser struct {
@@ -36,48 +37,50 @@ type lL1PredictableParser struct {
 	buffer  entity.TokenBuffer
 }
 
-func (l *lL1PredictableParser) Parse(t []entity.Token) (entity.Ast, error) {
-	l.bufferInit(t)
-
-	root, err := l.parse(entity.TERM)
-	if err != nil {
-		return nil, err
-	}
-	ast := entity.NewAst(root)
-	l.logging.Debugf("computed ast: \n%v", ast.Visualize())
-
-	l.simplify(ast.Root())
-	if err != nil {
-		return nil, err
-	}
-	l.logging.Debugf("simplified ast: \n%v", ast.Visualize())
-
-	return ast, nil
+func (l *lL1PredictableParser) bufferInit(t []entity.Token) {
+	l.buffer = entity.NewTokenBuffer(append(t, entity.Token{Tag: entity.EPSILON}))
 }
 
-func (l *lL1PredictableParser) simplify(node entity.Node) {
-	for i := len(node.Child()) - 1; i >= 0; i-- {
-		l.simplify(node.Child()[i])
-
-		if len(node.Child()[i].Child()) == 0 && !entity.IsTerminal(node.Child()[i].Token().Tag) {
-			node.Delete(i)
-		} else {
-			switch node.Child()[i].Token().Tag {
-			case entity.EPSILON, entity.LEFT_BRACKET, entity.RIGHT_BRACKET:
-				{
-					node.Delete(i)
-				}
-			case entity.TERMS:
-				{
-					node.Replace(i, node.Child()[i].Child()...)
-				}
-			}
-
+func (l *lL1PredictableParser) AlphaReduce(ast entity.Ast, sub map[string]string) (entity.Ast, error) {
+	for old, new := range sub {
+		if _, ok := sub[new]; ok {
+			return nil, errors.New("substitutions vars can be reduced")
+		}
+		err := l.alphaReduce(ast.Root(), entity.NewVariableToken(old), entity.NewVariableToken(new), nil)
+		if err != nil {
+			return nil, err
 		}
 	}
 
+	l.logging.Debugf("ast after alpha-reduction:\n%s", ast.Visualize())
+	return ast, nil
 }
 
+func (l *lL1PredictableParser) alphaReduce(node entity.Node, old *entity.Token, new *entity.Token, dependentVar entity.Node) error {
+	if l.getDependentVar(node) != nil {
+		dependentVar = l.getDependentVar(node)
+	}
+	if dependentVar != nil && *new == *dependentVar.Token() {
+		return errors.New("wrong alpha-reduction")
+	}
+	for i, child := range node.Child() {
+		if *child.Token() == *old {
+			node.Replace(i, entity.NewNode(fmt.Sprintf("%s", new.Value), *new))
+		} else if !entity.IsTerminal(child.Token().Tag) {
+			if err := l.alphaReduce(child, old, new, nil); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (l *lL1PredictableParser) getDependentVar(node entity.Node) entity.Node {
+	if len(node.Child()) > 0 && node.Child()[0].Token().Tag == entity.LAMBDA {
+		return node.Child()[1]
+	}
+	return nil
+}
 func (l *lL1PredictableParser) BetaReduce(ast entity.Ast) (entity.Ast, error) {
 	err := l.betaReduce(ast.Root())
 	if err != nil {
@@ -116,8 +119,58 @@ func (l *lL1PredictableParser) betaReduce(n entity.Node) error {
 
 }
 
-func (l *lL1PredictableParser) bufferInit(t []entity.Token) {
-	l.buffer = entity.NewTokenBuffer(append(t, entity.Token{Tag: entity.EPSILON}))
+func (l *lL1PredictableParser) apply(lop entity.Node, rop entity.Node, localVar entity.Node) {
+	for i, child := range lop.Child() {
+		if *child.Token() == *localVar.Token() {
+			lop.Replace(i, rop)
+		} else if child.Token().Tag == entity.LAMBDA {
+			return
+		} else {
+			l.apply(child, rop, localVar)
+		}
+	}
+}
+
+func (l *lL1PredictableParser) simplify(node entity.Node) {
+	for i := len(node.Child()) - 1; i >= 0; i-- {
+		l.simplify(node.Child()[i])
+
+		if len(node.Child()[i].Child()) == 0 && !entity.IsTerminal(node.Child()[i].Token().Tag) {
+			node.Delete(i)
+		} else {
+			switch node.Child()[i].Token().Tag {
+			case entity.EPSILON, entity.LEFT_BRACKET, entity.RIGHT_BRACKET:
+				{
+					node.Delete(i)
+				}
+			case entity.TERMS:
+				{
+					node.Replace(i, node.Child()[i].Child()...)
+				}
+			}
+
+		}
+	}
+
+}
+
+func (l *lL1PredictableParser) Parse(t []entity.Token) (entity.Ast, error) {
+	l.bufferInit(t)
+
+	root, err := l.parse(entity.TERM)
+	if err != nil {
+		return nil, err
+	}
+	ast := entity.NewAst(root)
+	l.logging.Debugf("computed ast: \n%v", ast.Visualize())
+
+	l.simplify(ast.Root())
+	if err != nil {
+		return nil, err
+	}
+	l.logging.Debugf("simplified ast: \n%v", ast.Visualize())
+
+	return ast, nil
 }
 
 func (l *lL1PredictableParser) parse(nonTerminalTag entity.Tag) (entity.Node, error) {
@@ -244,18 +297,6 @@ func (l lL1PredictableParser) NewNodeFromTerminal(t entity.Token) entity.Node {
 		{
 			l.logging.Debugf("unknown token tag %s", t)
 			return nil
-		}
-	}
-}
-
-func (l *lL1PredictableParser) apply(lop entity.Node, rop entity.Node, localVar entity.Node) {
-	for i, child := range lop.Child() {
-		if *child.Token() == *localVar.Token() {
-			lop.Replace(i, rop)
-		} else if child.Token().Tag == entity.LAMBDA {
-			return
-		} else {
-			l.apply(child, rop, localVar)
 		}
 	}
 }
